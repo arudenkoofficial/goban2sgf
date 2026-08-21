@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Cancel superseded runs on the same ref instead of queueing them.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Read-only gate. Runs on main and on every pull request: never rewrites code,
+  # so a formatting problem shows up as a red check rather than a surprise commit.
+  verify:
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint and format check
+        run: npx biome ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+  # Write-enabled autofix. Only on pushes to working branches, never to main,
+  # so the bot cannot commit over unpushed local work on the main branch.
+  autofix:
+    if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply Biome fixes
+        run: npx biome check --write
+
+      - name: Commit fixes
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Nothing to fix."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "style: apply biome autofix"
+          git push
+
+      # Runs after the fixes above, so it reports only what autofix cannot repair.
+      - name: Typecheck
+        run: npx tsc --noEmit

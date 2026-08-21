@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    // Node 22 runs the .ts files directly by stripping types, so nothing is emitted.
+    "noEmit": true,
+    "target": "es2024",
+    "lib": ["es2024"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+
+    // Required because imports carry the ".ts" extension, which is what Node needs.
+    "allowImportingTsExtensions": true,
+    // Rejects syntax Node cannot strip (enum, namespace, parameter properties).
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+
+    // Unused locals/params are reported by Biome instead, to avoid duplicate diagnostics.
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts"]
+}
