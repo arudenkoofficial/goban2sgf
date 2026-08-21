@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build output
+out/
+
+# Test images fetched from https://github.com/hanysz/img2sgf
+# Not committed: upstream has no LICENSE file, so redistribution terms are unclear.
+samples/
+
+# Worktrees
+.worktrees/
+
+# OS / editor noise
+.DS_Store
+*.log
