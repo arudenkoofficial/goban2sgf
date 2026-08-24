@@ -14,3 +14,4 @@ samples/
 # OS / editor noise
 .DS_Store
 *.log
+.vscode/
