@@ -5,6 +5,11 @@
     "clientKind": "git",
     "useIgnoreFile": true
   },
+  "files": {
+    // .claude holds agent-local settings; it is ignored via the global gitignore,
+    // which useIgnoreFile does not read.
+    "includes": ["**", "!**/.claude"]
+  },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -21,10 +26,13 @@
       "correctness": {
         "noUnusedVariables": "error",
         "noUnusedFunctionParameters": "error",
-        "noUnusedImports": "error"
+        // Same reasoning: an import added a second before it is used is not garbage.
+        "noUnusedImports": { "level": "warn", "fix": "none" }
       },
       "style": {
-        "useConst": "error",
+        // Reported, but never auto-applied: on a half-written function a variable
+        // looks single-assignment only because the loop that mutates it is missing.
+        "useConst": { "level": "warn", "fix": "none" },
         "noNonNullAssertion": "error",
         "useConsistentArrayType": { "level": "error", "options": { "syntax": "shorthand" } }
       },
