@@ -1,17 +1,7 @@
 import path from "node:path";
 
-import {
-  findGridIntersection,
-  getGrayImagePixel,
-  getGridIntersections,
-  getGridStep,
-  getIntersectionArea,
-  getIntersectionAverageDarkness,
-  getIntersectionPixels,
-  getXPeaks,
-  getYPeaks,
-  loadGrayImg,
-} from "./image.ts";
+import { GrayImage } from "./gray-image.ts";
+import { Grid } from "./grid.ts";
 
 type StoneType = "empty" | "black" | "white";
 
@@ -20,6 +10,7 @@ interface BoardPoint {
   row: number;
 }
 
+/** CLI: prints the average darkness of test points to help pick stone thresholds. */
 async function main() {
   const input = process.argv[2];
 
@@ -33,62 +24,50 @@ async function main() {
 
   console.log(`Loading ${filename}`);
 
-  const image = await loadGrayImg(filename);
+  const image = await GrayImage.load(filename);
 
   console.log(`Image: ${image.width}x${image.height}`);
 
-  const centerX = Math.floor(image.width / 2);
-  const centerY = Math.floor(image.height / 2);
-  const targetPixel = getGrayImagePixel(image, centerX, centerY);
+  const grid = Grid.detect(image);
 
-  if (targetPixel !== undefined) {
-    const rangeMap: Record<StoneType, number[]> = {
-      empty: [],
-      white: [],
-      black: [],
-    };
-    const intersections = getGridIntersections(getXPeaks(image), getYPeaks(image));
-    const testIntersections: Record<StoneType, BoardPoint[]> = {
-      empty: [
-        { column: 6, row: 6 },
-        { column: 12, row: 6 },
-        { column: 6, row: 11 },
-      ],
+  const rangeMap: Record<StoneType, number[]> = {
+    empty: [],
+    white: [],
+    black: [],
+  };
 
-      black: [
-        { column: 3, row: 3 },
-        { column: 13, row: 3 },
-        { column: 16, row: 11 },
-      ],
+  const testIntersections: Record<StoneType, BoardPoint[]> = {
+    empty: [
+      { column: 6, row: 6 },
+      { column: 12, row: 6 },
+      { column: 6, row: 11 },
+    ],
 
-      white: [
-        { column: 16, row: 5 },
-        { column: 16, row: 9 },
-        { column: 2, row: 13 },
-      ],
-    };
+    black: [
+      { column: 3, row: 3 },
+      { column: 13, row: 3 },
+      { column: 16, row: 11 },
+    ],
 
-    for (const [stoneType, points] of Object.entries(testIntersections)) {
-      console.log("\n\n>>>[DEBUG] stoneType:", stoneType, points);
-      for (const point of points) {
-        console.log("\n>>>[DEBUG] point:", point);
-        const area = getIntersectionArea(
-          image,
-          findGridIntersection(intersections, point.column, point.row),
-          getGridStep(getXPeaks(image)),
-        );
+    white: [
+      { column: 16, row: 5 },
+      { column: 16, row: 9 },
+      { column: 2, row: 13 },
+    ],
+  };
 
-        console.log(">>>[DEBUG] area: ", area);
-        const intersectionPixels = getIntersectionPixels(image, area);
-        const averageDarkness = getIntersectionAverageDarkness(intersectionPixels);
-        console.log(">>>[DEBUG] average darkness: ", averageDarkness);
+  for (const [stoneType, points] of Object.entries(testIntersections)) {
+    console.log("\n\n>>>[DEBUG] stoneType:", stoneType, points);
+    for (const point of points) {
+      console.log("\n>>>[DEBUG] point:", point);
+      const averageDarkness = grid.darknessAt(point.column, point.row);
+      console.log(">>>[DEBUG] average darkness: ", averageDarkness);
 
-        rangeMap[stoneType as StoneType].push(averageDarkness);
-      }
+      rangeMap[stoneType as StoneType].push(averageDarkness);
     }
-
-    console.log("\n\n>>>[DEBUG] rangeMap: ", rangeMap);
   }
+
+  console.log("\n\n>>>[DEBUG] rangeMap: ", rangeMap);
 }
 
 main().catch((error) => {
