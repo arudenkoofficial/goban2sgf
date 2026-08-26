@@ -10,6 +10,7 @@ interface BoardPoint {
   row: number;
 }
 
+/** CLI: prints the average darkness of test points to help pick stone thresholds. */
 async function main() {
   const input = process.argv[2];
 

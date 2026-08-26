@@ -13,7 +13,7 @@ export interface GridIntersection {
   row: number;
 }
 
-// Доля шага сетки, задающая радиус области сэмплирования вокруг перекрестия.
+/** Fraction of the grid step that sets the area radius around an intersection. */
 const INTERSECTION_RADIUS_RATIO = 0.4;
 
 export class Grid {
@@ -23,26 +23,33 @@ export class Grid {
   #step: number | null = null;
   #intersections: GridIntersection[] | null = null;
 
+  /** Use Grid.detect() to create an instance. */
   private constructor(image: GrayImage, xPeaks: GridPeak[], yPeaks: GridPeak[]) {
     this.#image = image;
     this.xPeaks = xPeaks;
     this.yPeaks = yPeaks;
   }
 
+  /** Finds grid lines from darkness peaks in the image projections. */
   static detect(image: GrayImage): Grid {
     return new Grid(image, findPeaks(image.xProjection()), findPeaks(image.yProjection()));
   }
 
+  /** Grid step in pixels. The first call caches the result.
+   * Uses the horizontal gaps between X peaks.
+   */
   get step(): number {
     this.#step ??= medianPeakGap(this.xPeaks);
     return this.#step;
   }
 
+  /** All grid line intersections. The first call caches the result. */
   get intersections(): GridIntersection[] {
     this.#intersections ??= this.#computeIntersections();
     return this.#intersections;
   }
 
+  /** Intersection at the given board coordinates. Throws RangeError if there is none. */
   intersectionAt(column: number, row: number): GridIntersection {
     const found = this.intersections.find(
       (intersection) => intersection.column === column && intersection.row === row,
@@ -55,10 +62,14 @@ export class Grid {
     return found;
   }
 
+  /** Average darkness around the intersection. A stone makes it higher. */
   darknessAt(column: number, row: number): number {
     return this.#image.averageDarknessIn(this.#areaAround(this.intersectionAt(column, row)));
   }
 
+  /** Sampling square around an intersection, clipped to the image borders.
+   * Stone detection reads the pixels inside it.
+   */
   #areaAround({ x, y }: GridIntersection): PixelArea {
     const radius = Math.floor(this.step * INTERSECTION_RADIUS_RATIO);
 
@@ -70,6 +81,7 @@ export class Grid {
     };
   }
 
+  /** Pairs every X peak with every Y peak. Each pair is a line intersection. */
   #computeIntersections(): GridIntersection[] {
     const result: GridIntersection[] = [];
     for (const [column, xPeak] of this.xPeaks.entries()) {
@@ -82,6 +94,9 @@ export class Grid {
   }
 }
 
+/** Finds projection ranges that are darker than average: grid line candidates.
+ * A projection is an array of darkness values, one per column or row.
+ */
 function findPeaks(projection: number[]): GridPeak[] {
   const threshold = average(projection);
   const peaks: GridPeak[] = [];
@@ -105,10 +120,12 @@ function findPeaks(projection: number[]): GridPeak[] {
   return peaks;
 }
 
+/** Builds a peak from its start and end. The center is the middle point. */
 function makePeak(start: number, end: number): GridPeak {
   return { start, end, center: start + Math.floor((end - start) / 2) };
 }
 
+/** Average of all values in the array. */
 function average(values: number[]): number {
   let sum = 0;
   for (const value of values) {
@@ -118,6 +135,7 @@ function average(values: number[]): number {
   return sum / values.length;
 }
 
+/** Median distance between peak centers. Safer than the mean when some peaks are noisy. */
 function medianPeakGap(peaks: GridPeak[]): number {
   const gaps: number[] = [];
   for (let i = 1; i < peaks.length; i++) {
